@@ -73,6 +73,8 @@ struct AudioOutput
   int (*ao_append_option)(ao_option **, const char *, const char *);
   void (*ao_free_options)(ao_option *);
   char* (*ao_get_option)(ao_option *, const char* );
+  void (*ao_set_metadata)(const char *buffer, unsigned int size);                                                                                                                                                
+  void (*ao_set_metadata_coverart)(const char *buffer, unsigned int size);
 };
 
 int shairport_main(int argc, char **argv);

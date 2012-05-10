@@ -524,7 +524,7 @@ static void handleClient(int pSock, char *pPassword, char *pHWADDR)
     while(1 == tMoreDataNeeded)
     {
       tError = readDataFromClient(pSock, &(tConn.recv));
-      if(!tError && strlen(tConn.recv.data) > 0)
+      if(!tError && tConn.recv.current > 0)
       {
         __shairport_xprintf("Finished Reading some data from client\n");
         // parse client request
@@ -643,7 +643,7 @@ static char *getFromBuffer(char *pBufferPtr, const char *pField, int pLenAfterFi
     }
     
     tSize = (int) (tShortest - tFound);
-    __shairport_xprintf("Found %.*s  length: %d\n", tSize, tFound, tSize);
+    __shairport_xprintf("Found %s  length: %d\n",tFound, tSize);
     if(pReturnSize != NULL)
     {
       *pReturnSize = tSize;
@@ -755,7 +755,7 @@ static int parseMessage(struct connection *pConn, unsigned char *pIpBin, unsigne
   if(tContent != NULL)
   {
     unsigned int tContentSize = atoi(tContent);
-    if(pConn->recv.marker == 0 || strlen(pConn->recv.data+pConn->recv.marker) != tContentSize)
+    if(pConn->recv.marker == 0 || pConn->recv.current-pConn->recv.marker != tContentSize)
     {
       if(isLogEnabledFor(HEADER_LOG_LEVEL))
       {
@@ -763,7 +763,7 @@ static int parseMessage(struct connection *pConn, unsigned char *pIpBin, unsigne
         if(pConn->recv.marker != 0)
         {
           __shairport_xprintf("ContentPtr has %d, but needs %d\n",
-                  strlen(pConn->recv.data+pConn->recv.marker), tContentSize);
+                               (pConn->recv.current-pConn->recv.marker), tContentSize);
         }
       }
       // check if value in tContent > 2nd read from client.
@@ -1000,15 +1000,67 @@ static int parseMessage(struct connection *pConn, unsigned char *pIpBin, unsigne
   {
     propogateCSeq(pConn);
     int tSize = 0;
+    char *buffer = NULL;
+    char *contentType = getFromHeader(pConn->recv.data, "Content-Type", &tSize);
+    char *tContent = getFromHeader(pConn->recv.data, "Content-Length", NULL);
+    int iContentSize = 0;
+    int isJpg = 0;
+    
+    if(tContent != NULL)
+    {
+      iContentSize = atoi(tContent);
+    }
+
+    if( tSize > 1 && 
+        (strncmp(contentType, "application/x-dmap-tagged", tSize) == 0) ||
+        (strncmp(contentType, "image/jpeg", tSize) == 0)                 )
+    {
+      if( (pConn->recv.current - pConn->recv.marker) == iContentSize && pConn->recv.marker != 0)
+      {
+        if(strncmp(contentType, "image/jpeg", tSize) == 0)
+        {
+          isJpg = 1;
+        }
+        buffer = (char *)malloc(iContentSize * sizeof(char));
+        memcpy(buffer, pConn->recv.data + pConn->recv.marker, iContentSize);                                                                                                                                     
+      }
+      else
+      {
+        iContentSize = 0;
+      }
+    }
+    else
+    {
+      iContentSize = 0;
+    }
     char *tVol = getFromHeader(pConn->recv.data, "volume", &tSize);
-    __shairport_xprintf("About to write [vol: %.*s] data to hairtunes\n", tSize, tVol);
+    if( tVol)
+    {
+      __shairport_xprintf("About to write [vol: %.*s] data to hairtunes\n", tSize, tVol);
+    }
     // TBD VOLUME
 #ifndef XBMC
     write(pConn->hairtunes->in[1], "vol: ", 5);
     write(pConn->hairtunes->in[1], tVol, tSize);
     write(pConn->hairtunes->in[1], "\n", 1);
 #else
-    __shairport_hairtunes_setvolume(atof(tVol));
+    if(tVol)
+    {
+      __shairport_hairtunes_setvolume(atof(tVol));
+    }
+    
+    if(iContentSize)
+    {
+      if(isJpg)
+      {
+        __shairport_hairtunes_set_metadata_coverart(buffer, iContentSize);      
+      }
+      else
+      {
+        __shairport_hairtunes_set_metadata(buffer, iContentSize);
+      }
+      free(buffer);
+    }
 #endif
     __shairport_xprintf("Finished writing data write data to hairtunes\n");
   }

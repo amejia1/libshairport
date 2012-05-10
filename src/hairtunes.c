@@ -268,6 +268,16 @@ void __shairport_hairtunes_setvolume(float f)
   fix_volume = 65536.0 * volume;
 }
 
+void __shairport_hairtunes_set_metadata(const char *buffer, unsigned int size)
+{
+  g_ao.ao_set_metadata(buffer, size);
+}
+
+void __shairport_hairtunes_set_metadata_coverart(const char *buffer, unsigned int size)
+{
+  g_ao.ao_set_metadata_coverart(buffer, size);
+}
+
 void __shairport_hairtunes_flush(void)
 {
   pthread_mutex_lock(&ab_mutex);
