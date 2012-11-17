@@ -120,6 +120,7 @@ int __shairport_setup_server(struct addrinfo *server_addr)
 
   int tEnable = 1;
   setsockopt(tSock, SOL_SOCKET, SO_REUSEADDR, &tEnable, sizeof (tEnable));
+  server_addr->ai_addr->sa_family = server_addr->ai_family; // ensure that server_addr has same famliy than the socket
   if (bind(tSock, server_addr->ai_addr, server_addr->ai_addrlen) < 0)
   {
     close(tSock);
