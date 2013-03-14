@@ -62,6 +62,7 @@ struct printfPtr
   int (*extprintf)(const char* msg, size_t msgSize);
 };
 
+#define SHAIRPORT_AUDIOOUTPUT_VERSION 2
 struct AudioOutput
 {
   void (*ao_initialize)(void);
@@ -75,6 +76,7 @@ struct AudioOutput
   char* (*ao_get_option)(ao_option *, const char* );
   void (*ao_set_metadata)(const char *buffer, unsigned int size);                                                                                                                                                
   void (*ao_set_metadata_coverart)(const char *buffer, unsigned int size);
+  void (*ao_set_volume)(float volume);
 };
 
 int shairport_main(int argc, char **argv);
