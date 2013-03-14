@@ -264,6 +264,8 @@ void __shairport_hairtunes_setvolume(float f)
   assert(f<=0);
   if (debug)
       __shairport_xprintf("VOL: %lf\n", f);
+  if (g_ao.ao_set_volume)
+    g_ao.ao_set_volume(f);
   volume = pow(10.0,0.05*f);
   fix_volume = 65536.0 * volume;
 }
